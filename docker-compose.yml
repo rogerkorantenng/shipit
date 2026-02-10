@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./studydrip.db
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-change-in-production}
+      - GRADIENT_API_KEY=${GRADIENT_API_KEY:-}
+      - GRADIENT_WORKSPACE_ID=${GRADIENT_WORKSPACE_ID:-}
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
+    volumes:
+      - backend-data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
