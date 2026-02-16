@@ -65,6 +65,7 @@ def create_registry(bus: Optional[EventBus] = None) -> AgentRegistry:
     from app.agents.review_coordination import ReviewCoordinationAgent
     from app.agents.deployment_orchestrator import DeploymentOrchestratorAgent
     from app.agents.analytics_insights import AnalyticsInsightsAgent
+    from app.agents.slack_notifier import SlackNotifierAgent
 
     registry = AgentRegistry(bus=bus)
 
@@ -77,6 +78,7 @@ def create_registry(bus: Optional[EventBus] = None) -> AgentRegistry:
         ReviewCoordinationAgent(bus=bus),
         DeploymentOrchestratorAgent(bus=bus),
         AnalyticsInsightsAgent(bus=bus),
+        SlackNotifierAgent(bus=bus),
     ]
 
     for agent in agents:

@@ -81,15 +81,17 @@ class GradientService:
     async def chat_completion(
         self,
         messages: list[dict],
+        model: str = "claude-haiku-4-5",
         max_tokens: int = 2048,
         temperature: float = 0.7,
-    ) -> dict:
-        """Non-streaming chat completion via agent endpoint."""
+    ) -> str:
+        """Non-streaming chat completion via agent endpoint. Returns content string."""
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 AGENT_URL,
                 headers=_headers(),
                 json={
+                    "model": model,
                     "messages": messages,
                     "max_tokens": max_tokens,
                     "temperature": temperature,
@@ -100,9 +102,8 @@ class GradientService:
             data = resp.json()
             # Handle reasoning models: content may be in reasoning_content
             msg = data["choices"][0]["message"]
-            if not msg.get("content") and msg.get("reasoning_content"):
-                msg["content"] = msg["reasoning_content"]
-            return data
+            content = msg.get("content") or msg.get("reasoning_content") or ""
+            return content
 
     async def chat_completion_stream(
         self,

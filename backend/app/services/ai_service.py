@@ -97,8 +97,7 @@ async def break_down_task(description: str, existing_members: list[str]) -> dict
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"title": description, "subtasks": [], "suggested_priority": "medium", "detected_blockers": []})
 
 
@@ -155,8 +154,7 @@ async def _extract_chunk(
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"tasks": [], "updates": []})
 
 
@@ -239,8 +237,7 @@ async def detect_blockers(tasks: list[dict]) -> dict:
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"blockers": []})
 
 
@@ -293,8 +290,7 @@ async def plan_sprint(
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"sprint_name": "Sprint", "goal": "", "start_date": None, "end_date": None, "total_hours": 0, "assignments": [], "deferred": []})
 
 
@@ -330,8 +326,7 @@ async def score_priorities(tasks: list[dict]) -> dict:
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"recommendations": []})
 
 
@@ -372,8 +367,7 @@ async def generate_standup(
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"date": "", "standups": [], "team_summary": "No data"})
 
 
@@ -401,8 +395,7 @@ async def generate_digest(activities: list[dict], tasks: list[dict]) -> dict:
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {"summary": "No data available", "moved": [], "stuck": [], "at_risk": []})
 
 
@@ -445,8 +438,7 @@ async def generate_pulse_insights(
             ),
         },
     ]
-    resp = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
-    content = resp["choices"][0]["message"]["content"]
+    content = await gradient.chat_completion(messages, max_tokens=2048, temperature=0.3)
     return _parse_json(content, {
         "insights": "Not enough data yet.",
         "patterns": [],
