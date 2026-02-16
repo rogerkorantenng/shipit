@@ -270,3 +270,45 @@ export interface GamificationResult {
   current_streak: number
   new_badges: string[]
 }
+
+// --- Agents ---
+
+export interface AgentStatus {
+  name: string
+  description: string
+  status: 'idle' | 'running' | 'error' | 'disabled'
+  enabled: boolean
+  subscribed_events: string[]
+  metrics: {
+    events_processed: number
+    errors: number
+    last_run: string | null
+    avg_processing_ms: number
+  }
+  project_config?: {
+    enabled: boolean
+    config: Record<string, unknown>
+    last_run_at: string | null
+    total_events_processed: number
+  }
+}
+
+export interface AgentEvent {
+  event_id: string
+  type: string
+  source_agent: string
+  project_id: number | null
+  data: Record<string, unknown>
+  timestamp: string
+  correlation_id: string | null
+}
+
+export interface ServiceConnection {
+  id: number
+  service_type: string
+  base_url: string | null
+  enabled: boolean
+  config: Record<string, unknown> | null
+  last_sync_at: string | null
+  has_token: boolean
+}

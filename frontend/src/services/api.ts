@@ -19,6 +19,9 @@ import type {
   PulseInsights,
   UserStats,
   Badge,
+  AgentStatus,
+  AgentEvent,
+  ServiceConnection,
 } from '../types'
 
 const API_BASE = '/api'
@@ -208,6 +211,29 @@ export const activityApi = {
     api.get(`/projects/${projectId}/activity`, { params: since ? { since } : {} }),
   forTask: (projectId: number, taskId: number) =>
     api.get(`/projects/${projectId}/activity/task/${taskId}`),
+}
+
+// --- Agents ---
+
+export const agentsApi = {
+  fleetStatus: () =>
+    api.get<{ agents: AgentStatus[]; bus_running: boolean }>('/agents/status'),
+  listProjectAgents: (projectId: number) =>
+    api.get<{ agents: AgentStatus[] }>(`/projects/${projectId}/agents`),
+  updateAgentConfig: (projectId: number, agentName: string, data: { enabled?: boolean; config?: Record<string, unknown> }) =>
+    api.put(`/projects/${projectId}/agents/${agentName}`, data),
+  triggerAgent: (projectId: number, agentName: string, eventData?: Record<string, unknown>) =>
+    api.post(`/projects/${projectId}/agents/${agentName}/trigger`, { event_data: eventData || {} }),
+  listEvents: (projectId: number, limit?: number) =>
+    api.get<{ events: AgentEvent[] }>(`/projects/${projectId}/agents/events`, { params: limit ? { limit } : {} }),
+  createConnection: (projectId: number, data: { service_type: string; base_url?: string; api_token: string; config?: Record<string, unknown> }) =>
+    api.post(`/projects/${projectId}/connections`, data),
+  listConnections: (projectId: number) =>
+    api.get<{ connections: ServiceConnection[] }>(`/projects/${projectId}/connections`),
+  deleteConnection: (projectId: number, serviceType: string) =>
+    api.delete(`/projects/${projectId}/connections/${serviceType}`),
+  testConnection: (projectId: number, serviceType: string) =>
+    api.post<{ status: string; error?: string }>(`/projects/${projectId}/connections/${serviceType}/test`),
 }
 
 export default api

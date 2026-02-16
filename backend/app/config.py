@@ -17,6 +17,25 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
+    # Agent Fleet
+    agents_enabled: bool = True
+    agent_analytics_schedule_hours: int = 24
+    agent_review_sla_hours: int = 24
+
+    # Slack
+    slack_bot_token: str = ""
+    slack_default_channel: str = ""
+
+    # Datadog
+    datadog_api_key: str = ""
+    datadog_app_key: str = ""
+
+    # Sentry
+    sentry_api_token: str = ""
+
+    # Figma
+    figma_webhook_secret: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

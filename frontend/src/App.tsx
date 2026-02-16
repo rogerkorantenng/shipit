@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
 import Board from './pages/Board'
+import Agents from './pages/Agents'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const user = localStorage.getItem('user')
@@ -26,6 +27,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Board />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/agents"
+        element={
+          <ProtectedRoute>
+            <Agents />
           </ProtectedRoute>
         }
       />

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
+  Bot,
   Menu,
   Rocket,
 } from 'lucide-react'
@@ -20,6 +21,7 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard, active: location.pathname === '/' },
     { path: '/projects', label: 'Projects', icon: FolderKanban, active: location.pathname === '/projects' || location.pathname.startsWith('/projects/') },
+    { path: '/agents', label: 'Agents', icon: Bot, active: location.pathname === '/agents' },
   ]
 
   return (

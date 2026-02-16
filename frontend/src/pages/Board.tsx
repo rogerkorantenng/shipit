@@ -69,6 +69,7 @@ export default function Board() {
   const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
+    localStorage.setItem('lastProjectId', String(projectId))
     loadAll()
   }, [projectId])
 
