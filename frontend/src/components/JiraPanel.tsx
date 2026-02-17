@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Loader2, Check, Upload, Download, RefreshCw, Layers } from 'lucide-react'
+import { X, Loader2, Check, Upload, Download, RefreshCw, Layers, Eye, EyeOff, Key } from 'lucide-react'
 import { jiraApi } from '../services/api'
 import type { JiraConnection } from '../types'
 
@@ -7,6 +7,14 @@ interface JiraPanelProps {
   projectId: number
   onClose: () => void
   onRefresh: () => void
+}
+
+interface RevealedJira {
+  jira_site: string
+  jira_email: string
+  jira_api_token: string
+  jira_project_key: string
+  jira_board_id: number | null
 }
 
 export default function JiraPanel({ projectId, onClose, onRefresh }: JiraPanelProps) {
@@ -25,6 +33,10 @@ export default function JiraPanel({ projectId, onClose, onRefresh }: JiraPanelPr
   const [syncing, setSyncing] = useState<'export' | 'import' | 'sync' | 'import-sprints' | null>(null)
   const [syncResult, setSyncResult] = useState('')
 
+  // Reveal state
+  const [revealed, setRevealed] = useState<RevealedJira | null>(null)
+  const [revealing, setRevealing] = useState(false)
+
   useEffect(() => {
     loadConnection()
   }, [])
@@ -40,6 +52,22 @@ export default function JiraPanel({ projectId, onClose, onRefresh }: JiraPanelPr
     }
   }
 
+  const handleRevealToggle = async () => {
+    if (revealed) {
+      setRevealed(null)
+      return
+    }
+    setRevealing(true)
+    try {
+      const res = await jiraApi.revealCredentials(projectId)
+      setRevealed(res.data)
+    } catch {
+      // ignore
+    } finally {
+      setRevealing(false)
+    }
+  }
+
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault()
     setConnecting(true)
@@ -51,6 +79,7 @@ export default function JiraPanel({ projectId, onClose, onRefresh }: JiraPanelPr
         jira_api_token: token,
         jira_project_key: projectKey,
       })
+      setRevealed(null)
       await loadConnection()
     } catch {
       setConnectError('Failed to connect. Check your credentials and site URL.')
@@ -63,6 +92,7 @@ export default function JiraPanel({ projectId, onClose, onRefresh }: JiraPanelPr
     try {
       await jiraApi.disconnect(projectId)
       setConnection({ connected: false })
+      setRevealed(null)
       setSite('')
       setEmail('')
       setToken('')
@@ -156,15 +186,61 @@ export default function JiraPanel({ projectId, onClose, onRefresh }: JiraPanelPr
         ) : connection?.connected ? (
           /* Connected State */
           <div className="space-y-4">
-            <div className="bg-green-50 rounded-lg p-3 flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-800 font-medium">Connected to Jira</span>
+            <div className="bg-green-50 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-800 font-medium">Connected to Jira</span>
+              </div>
+              <button
+                onClick={handleRevealToggle}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-green-100"
+                title={revealed ? 'Hide credentials' : 'Show credentials'}
+              >
+                {revealing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : revealed ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p><span className="font-medium">Site:</span> {connection.jira_site}</p>
-              <p><span className="font-medium">Project:</span> {connection.jira_project_key}</p>
+
+            <div className="text-sm text-gray-600 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="font-medium min-w-[5rem]">Site:</span>
+                <span className="font-mono text-gray-700">{connection.jira_site}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium min-w-[5rem]">Email:</span>
+                <span className="font-mono text-gray-700">
+                  {revealed ? revealed.jira_email : connection.jira_email}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium min-w-[5rem]">Project:</span>
+                <span className="font-mono text-gray-700">{connection.jira_project_key}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium min-w-[5rem]">API Token:</span>
+                <div className="flex items-center gap-1">
+                  <Key className="w-3 h-3 text-gray-400" />
+                  <span className="font-mono text-gray-700 break-all">
+                    {revealed ? revealed.jira_api_token : (connection.masked_token || '••••••••')}
+                  </span>
+                </div>
+              </div>
+              {connection.jira_board_id && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium min-w-[5rem]">Board ID:</span>
+                  <span className="font-mono text-gray-700">{connection.jira_board_id}</span>
+                </div>
+              )}
               {connection.last_sync_at && (
-                <p><span className="font-medium">Last sync:</span> {new Date(connection.last_sync_at).toLocaleString()}</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium min-w-[5rem]">Last Sync:</span>
+                  <span className="text-gray-700">{new Date(connection.last_sync_at).toLocaleString()}</span>
+                </div>
               )}
             </div>
 

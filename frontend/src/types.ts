@@ -196,6 +196,7 @@ export interface JiraConnection {
   jira_site?: string
   jira_email?: string
   jira_project_key?: string
+  masked_token?: string
   enabled?: boolean
   last_sync_at?: string | null
   jira_board_id?: number | null
@@ -309,6 +310,8 @@ export interface ServiceConnection {
   base_url: string | null
   enabled: boolean
   config: Record<string, unknown> | null
+  masked_config: Record<string, unknown> | null
   last_sync_at: string | null
   has_token: boolean
+  masked_token: string | null
 }

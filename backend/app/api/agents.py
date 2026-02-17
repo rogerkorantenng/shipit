@@ -140,15 +140,148 @@ async def trigger_agent(
     from app.agents.event_bus import Event, EventType
 
     if agent.subscribed_events:
+        # Merge user-provided data with rich demo defaults for manual triggers
+        event_data = {**_get_demo_data(agent_name), **data.event_data}
         event = Event(
             type=agent.subscribed_events[0],
-            data=data.event_data,
+            data=event_data,
             source_agent="manual_trigger",
             project_id=project_id,
         )
         await _event_bus.publish(event)
 
     return {"status": "triggered", "agent_name": agent_name}
+
+
+_SAMPLE_DIFF = """\
+diff --git a/src/auth/login.py b/src/auth/login.py
+--- a/src/auth/login.py
++++ b/src/auth/login.py
+@@ -12,6 +12,28 @@ from app.models.user import User
++import hashlib
++import os
++
++def create_session(user: User, request: Request) -> str:
++    token = hashlib.sha256(os.urandom(32)).hexdigest()
++    session = Session(user_id=user.id, token=token, ip=request.client.host)
++    db.add(session)
++    return token
++
++def verify_token(token: str) -> User | None:
++    session = db.query(Session).filter_by(token=token).first()
++    if not session or session.expired:
++        return None
++    return session.user
++
++@router.post("/login")
++async def login(credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
++    user = await db.execute(
++        select(User).where(User.email == credentials.email)
++    )
++    user = user.scalars().first()
++    if not user or not verify_password(credentials.password, user.hashed_password):
++        raise HTTPException(status_code=401, detail="Invalid credentials")
++    token = create_session(user, request)
++    return {"access_token": token, "user": user.to_dict()}
+
+diff --git a/src/api/tasks.py b/src/api/tasks.py
+--- a/src/api/tasks.py
++++ b/src/api/tasks.py
+@@ -45,3 +45,18 @@ async def update_task(task_id: int, data: TaskUpdate):
++@router.delete("/{task_id}")
++async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
++    query = f"DELETE FROM tasks WHERE id = {task_id}"
++    await db.execute(text(query))
++    await db.commit()
++    return {"deleted": True}
+"""
+
+
+def _get_demo_data(agent_name: str) -> dict:
+    """Return realistic demo data for manual agent triggers."""
+    demos = {
+        "product_intelligence": {
+            "key": "SHIP-142",
+            "title": "Implement real-time WebSocket notifications for task updates",
+            "description": (
+                "As a project manager, I need real-time notifications when tasks "
+                "are updated so the team stays synchronized. Requirements:\n"
+                "- WebSocket connection per authenticated user\n"
+                "- Notify on task status changes, assignments, comments\n"
+                "- Support @mentions with push notifications\n"
+                "- Graceful reconnection with exponential backoff\n"
+                "- Message queue for offline users"
+            ),
+            "status": "To Do",
+            "priority": "High",
+            "reporter": "Roger Koranteng",
+            "project_key": "SHIP",
+        },
+        "design_sync": {
+            "file_key": "figma-abc123xyz",
+            "file_name": "ShipIt Design System v3",
+            "demo_design_data": {
+                "file_key": "figma-abc123xyz",
+                "name": "ShipIt Design System v3",
+                "last_modified": "2025-02-15T14:30:00Z",
+                "components": {
+                    "TaskCard": {"description": "Kanban task card with priority badge, assignee avatar, and due date", "width": 320, "height": 180},
+                    "AgentStatusBadge": {"description": "Pill-shaped status indicator with animated pulse for running agents", "width": 120, "height": 32},
+                    "NotificationPanel": {"description": "Slide-out panel with grouped notification items and mark-all-read", "width": 380, "height": 600},
+                    "SprintBoard": {"description": "Horizontal scrolling board with column headers showing task counts", "width": 1200, "height": 800},
+                },
+            },
+        },
+        "code_orchestration": {
+            "issue_id": "42",
+            "title": "Implement WebSocket notification system",
+            "description": "Real-time push notifications via WebSocket for task updates and agent events.",
+            "analysis": {
+                "summary": "websocket-notification-system",
+                "stories": [
+                    {"title": "WebSocket connection manager", "description": "Handle auth, reconnection, heartbeat"},
+                    {"title": "Event broadcaster", "description": "Fan-out task events to subscribed clients"},
+                ],
+            },
+        },
+        "security_compliance": {
+            "mr_iid": 87,
+            "title": "feat: Add user authentication and task deletion endpoint",
+            "source_branch": "feature/SHIP-142-auth-system",
+            "target_branch": "main",
+            "diff": _SAMPLE_DIFF,
+            "files": ["src/auth/login.py", "src/api/tasks.py"],
+        },
+        "test_intelligence": {
+            "mr_iid": 87,
+            "title": "feat: Add user authentication and task deletion endpoint",
+            "source_branch": "feature/SHIP-142-auth-system",
+            "target_branch": "main",
+            "diff": _SAMPLE_DIFF,
+            "files": ["src/auth/login.py", "src/api/tasks.py"],
+        },
+        "review_coordination": {
+            "mr_iid": 87,
+            "title": "feat: Add user authentication and task deletion endpoint",
+            "source_branch": "feature/SHIP-142-auth-system",
+            "target_branch": "main",
+            "diff": _SAMPLE_DIFF,
+            "files": ["src/auth/login.py", "src/api/tasks.py"],
+        },
+        "deployment_orchestrator": {
+            "ref": "main",
+            "mr_iid": 87,
+            "title": "feat: Add user authentication and task deletion endpoint",
+            "commit_messages": [
+                "feat: implement session-based auth with token management",
+                "feat: add task deletion endpoint with soft-delete",
+                "fix: handle expired sessions gracefully",
+                "chore: add migration for sessions table",
+            ],
+        },
+        "analytics_insights": {},
+    }
+    return demos.get(agent_name, {})
 
 
 # --- Event log ---
@@ -196,18 +329,24 @@ async def create_connection(
     )
     existing = result.scalars().first()
 
+    # Strip whitespace from tokens and config values
+    clean_token = data.api_token.strip()
+    clean_config = {}
+    for k, v in (data.config or {}).items():
+        clean_config[k] = v.strip() if isinstance(v, str) else v
+
     if existing:
         existing.base_url = data.base_url
-        existing.api_token = data.api_token
-        existing.config = data.config or {}
+        existing.api_token = clean_token
+        existing.config = clean_config
         existing.enabled = True
     else:
         conn = ServiceConnection(
             project_id=project_id,
             service_type=data.service_type,
             base_url=data.base_url,
-            api_token=data.api_token,
-            config=data.config or {},
+            api_token=clean_token,
+            config=clean_config,
         )
         db.add(conn)
 
@@ -225,6 +364,24 @@ async def list_connections(
         select(ServiceConnection).where(ServiceConnection.project_id == project_id)
     )
     connections = result.scalars().all()
+    def mask_token(token: str | None) -> str | None:
+        if not token:
+            return None
+        if len(token) <= 8:
+            return "****" + token[-2:]
+        return token[:4] + "****" + token[-4:]
+
+    def mask_config(config: dict | None) -> dict | None:
+        if not config:
+            return config
+        masked = {}
+        for k, v in config.items():
+            if isinstance(v, str) and k in ("app_key", "api_key", "secret"):
+                masked[k] = mask_token(v)
+            else:
+                masked[k] = v
+        return masked
+
     return {
         "connections": [
             {
@@ -233,11 +390,38 @@ async def list_connections(
                 "base_url": c.base_url,
                 "enabled": c.enabled,
                 "config": c.config,
+                "masked_config": mask_config(c.config),
                 "last_sync_at": c.last_sync_at.isoformat() if c.last_sync_at else None,
                 "has_token": bool(c.api_token),
+                "masked_token": mask_token(c.api_token),
             }
             for c in connections
         ]
+    }
+
+
+@router.get("/projects/{project_id}/connections/{service_type}/reveal")
+async def reveal_connection(
+    project_id: int,
+    service_type: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(ServiceConnection).where(
+            ServiceConnection.project_id == project_id,
+            ServiceConnection.service_type == service_type,
+        )
+    )
+    conn = result.scalars().first()
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    return {
+        "service_type": conn.service_type,
+        "base_url": conn.base_url,
+        "api_token": conn.api_token or "",
+        "config": conn.config or {},
     }
 
 

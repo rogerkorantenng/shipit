@@ -141,6 +141,8 @@ export const jiraApi = {
     api.get<JiraConnection>(`/projects/${projectId}/jira/connection`),
   disconnect: (projectId: number) =>
     api.delete(`/projects/${projectId}/jira/connection`),
+  revealCredentials: (projectId: number) =>
+    api.get<{ jira_site: string; jira_email: string; jira_api_token: string; jira_project_key: string; jira_board_id: number | null }>(`/projects/${projectId}/jira/connection/reveal`),
   listProjects: (projectId: number) =>
     api.get<JiraProject[]>(`/projects/${projectId}/jira/projects`),
   export: (projectId: number) =>
@@ -230,6 +232,8 @@ export const agentsApi = {
     api.post(`/projects/${projectId}/connections`, data),
   listConnections: (projectId: number) =>
     api.get<{ connections: ServiceConnection[] }>(`/projects/${projectId}/connections`),
+  revealConnection: (projectId: number, serviceType: string) =>
+    api.get<{ service_type: string; base_url: string | null; api_token: string; config: Record<string, unknown> }>(`/projects/${projectId}/connections/${serviceType}/reveal`),
   deleteConnection: (projectId: number, serviceType: string) =>
     api.delete(`/projects/${projectId}/connections/${serviceType}`),
   testConnection: (projectId: number, serviceType: string) =>

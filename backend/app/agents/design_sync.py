@@ -33,8 +33,10 @@ class DesignSyncAgent(BaseAgent):
 
         logger.info(f"Design change detected for Figma file: {file_key}")
 
-        # Fetch design data from Figma
+        # Fetch design data from Figma, fall back to inline demo data
         design_data = await self._fetch_design_data(project_id, file_key)
+        if not design_data:
+            design_data = data.get("demo_design_data", {})
         if not design_data:
             logger.info("No design data available")
             return

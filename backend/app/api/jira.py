@@ -146,15 +146,39 @@ async def jira_connection_status(
     if not conn:
         return {"connected": False}
 
+    token = conn.jira_api_token or ""
+    if len(token) <= 8:
+        masked = "****" + token[-2:] if token else ""
+    else:
+        masked = token[:4] + "****" + token[-4:]
+
     return {
         "connected": True,
         "jira_site": conn.jira_site,
         "jira_email": conn.jira_email,
         "jira_project_key": conn.jira_project_key,
+        "masked_token": masked,
         "enabled": conn.enabled,
         "last_sync_at": conn.last_sync_at.isoformat() if conn.last_sync_at else None,
         "jira_board_id": conn.jira_board_id,
         "sprints_available": conn.jira_board_id is not None,
+    }
+
+
+@router.get("/{project_id}/jira/connection/reveal")
+async def jira_reveal_credentials(
+    project_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await verify_membership(project_id, user.id, db)
+    conn = await _get_connection(db, project_id)
+    return {
+        "jira_site": conn.jira_site,
+        "jira_email": conn.jira_email,
+        "jira_api_token": conn.jira_api_token,
+        "jira_project_key": conn.jira_project_key,
+        "jira_board_id": conn.jira_board_id,
     }
 
 

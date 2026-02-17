@@ -148,6 +148,16 @@ export default function Agents() {
     }
   }
 
+  const handleReveal = async (serviceType: string) => {
+    if (!selectedProject) return null
+    try {
+      const { data } = await agentsApi.revealConnection(selectedProject, serviceType)
+      return data
+    } catch {
+      return null
+    }
+  }
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
@@ -235,6 +245,7 @@ export default function Agents() {
                 onConnect={handleConnect}
                 onDisconnect={handleDisconnect}
                 onTest={handleTest}
+                onReveal={handleReveal}
                 testResults={testResults}
               />
 

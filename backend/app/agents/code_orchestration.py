@@ -55,23 +55,28 @@ class CodeOrchestrationAgent(BaseAgent):
         gitlab = await self._get_gitlab(event.project_id)
         gl_project_id = await self._get_gitlab_project_id(event.project_id)
 
+        # Publish branch created event
+        branch_created = False
         if gitlab and gl_project_id:
             try:
                 await gitlab.create_branch(gl_project_id, branch_name)
-                await self.publish(Event(
-                    type=EventType.BRANCH_CREATED,
-                    data={"branch": branch_name, "ticket_key": ticket_key},
-                    source_agent=self.name,
-                    project_id=event.project_id,
-                    correlation_id=event.correlation_id,
-                ))
+                branch_created = True
             except Exception:
                 logger.exception(f"Failed to create branch {branch_name}")
-                return
 
-            # Generate boilerplate
-            boilerplate = await agent_ai_service.generate_boilerplate(analysis, branch_name)
-            if boilerplate.get("files"):
+        # Always publish branch event (even without GitLab - shows what agent would do)
+        await self.publish(Event(
+            type=EventType.BRANCH_CREATED,
+            data={"branch": branch_name, "ticket_key": ticket_key},
+            source_agent=self.name,
+            project_id=event.project_id,
+            correlation_id=event.correlation_id,
+        ))
+
+        # Generate boilerplate via AI
+        boilerplate = await agent_ai_service.generate_boilerplate(analysis, branch_name)
+        if boilerplate.get("files"):
+            if gitlab and gl_project_id and branch_created:
                 for file_info in boilerplate["files"][:10]:
                     try:
                         await gitlab.create_file(
@@ -84,18 +89,20 @@ class CodeOrchestrationAgent(BaseAgent):
                     except Exception:
                         logger.warning(f"Failed to create file: {file_info.get('path')}")
 
-                await self.publish(Event(
-                    type=EventType.BOILERPLATE_GENERATED,
-                    data={
-                        "branch": branch_name,
-                        "files": [f["path"] for f in boilerplate["files"]],
-                    },
-                    source_agent=self.name,
-                    project_id=event.project_id,
-                    correlation_id=event.correlation_id,
-                ))
+            await self.publish(Event(
+                type=EventType.BOILERPLATE_GENERATED,
+                data={
+                    "branch": branch_name,
+                    "files": [f["path"] for f in boilerplate["files"]],
+                },
+                source_agent=self.name,
+                project_id=event.project_id,
+                correlation_id=event.correlation_id,
+            ))
 
-            # Create MR
+        # Create MR or publish template event
+        mr_iid = None
+        if gitlab and gl_project_id and branch_created:
             try:
                 members = await gitlab.list_project_members(gl_project_id)
                 reviewer_ids = [m["id"] for m in members[:2]] if members else None
@@ -107,20 +114,21 @@ class CodeOrchestrationAgent(BaseAgent):
                     description=boilerplate.get("pr_description", "Auto-generated PR"),
                     reviewer_ids=reviewer_ids,
                 )
-
-                await self.publish(Event(
-                    type=EventType.PR_TEMPLATE_CREATED,
-                    data={
-                        "mr_iid": mr.get("iid"),
-                        "branch": branch_name,
-                        "ticket_key": ticket_key,
-                    },
-                    source_agent=self.name,
-                    project_id=event.project_id,
-                    correlation_id=event.correlation_id,
-                ))
+                mr_iid = mr.get("iid")
             except Exception:
                 logger.exception("Failed to create merge request")
+
+        await self.publish(Event(
+            type=EventType.PR_TEMPLATE_CREATED,
+            data={
+                "mr_iid": mr_iid or 0,
+                "branch": branch_name,
+                "ticket_key": ticket_key,
+            },
+            source_agent=self.name,
+            project_id=event.project_id,
+            correlation_id=event.correlation_id,
+        ))
 
     async def _handle_issue_assigned(self, event: Event) -> None:
         data = event.data
@@ -134,15 +142,33 @@ class CodeOrchestrationAgent(BaseAgent):
         if gitlab and gl_project_id:
             try:
                 await gitlab.create_branch(gl_project_id, branch_name)
+            except Exception:
+                logger.exception(f"Failed to create branch for issue {issue_id}")
+
+        # Always publish event (shows what agent would do)
+        await self.publish(Event(
+            type=EventType.BRANCH_CREATED,
+            data={"branch": branch_name, "issue_id": issue_id},
+            source_agent=self.name,
+            project_id=event.project_id,
+            correlation_id=event.correlation_id,
+        ))
+
+        # If analysis data is available, also generate boilerplate
+        analysis = data.get("analysis", {})
+        if analysis:
+            boilerplate = await agent_ai_service.generate_boilerplate(analysis, branch_name)
+            if boilerplate.get("files"):
                 await self.publish(Event(
-                    type=EventType.BRANCH_CREATED,
-                    data={"branch": branch_name, "issue_id": issue_id},
+                    type=EventType.BOILERPLATE_GENERATED,
+                    data={
+                        "branch": branch_name,
+                        "files": [f["path"] for f in boilerplate["files"]],
+                    },
                     source_agent=self.name,
                     project_id=event.project_id,
                     correlation_id=event.correlation_id,
                 ))
-            except Exception:
-                logger.exception(f"Failed to create branch for issue {issue_id}")
 
     async def _handle_impl_notes(self, event: Event) -> None:
         # Design sync generated implementation notes - ensure branch exists

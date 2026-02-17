@@ -68,8 +68,8 @@ class DeploymentOrchestratorAgent(BaseAgent):
         # Trigger CI/CD pipeline
         pipeline_result = await self._trigger_pipeline(project_id, data.get("ref", "main"))
 
-        # Generate release notes
-        release_notes = await self._generate_release_notes(project_id)
+        # Generate release notes (try GitLab, fall back to inline commit data)
+        release_notes = await self._generate_release_notes(project_id, data)
 
         if release_notes:
             await self.publish(Event(
@@ -197,10 +197,13 @@ class DeploymentOrchestratorAgent(BaseAgent):
             logger.exception("Failed to trigger pipeline")
             return {"status": "error"}
 
-    async def _generate_release_notes(self, project_id: int | None) -> dict:
+    async def _generate_release_notes(self, project_id: int | None, data: dict | None = None) -> dict:
         if not project_id:
             return {}
 
+        commit_data = []
+
+        # Try GitLab first
         try:
             from sqlalchemy import select
             from app.models.service_connection import ServiceConnection
@@ -215,21 +218,29 @@ class DeploymentOrchestratorAgent(BaseAgent):
                     )
                 )
                 conn = result.scalars().first()
-                if not conn:
-                    return {}
+                if conn:
+                    gitlab = GitLabAdapter(conn.base_url or "https://gitlab.com", conn.api_token)
+                    gl_project_id = (conn.config or {}).get("project_id")
+                    if gl_project_id:
+                        commits = await gitlab.get_commits(gl_project_id, limit=20)
+                        commit_data = [
+                            {"message": c.get("message", ""), "author": c.get("author_name", "")}
+                            for c in commits
+                        ]
+        except Exception:
+            logger.exception("Failed to fetch commits from GitLab")
 
-                gitlab = GitLabAdapter(conn.base_url or "https://gitlab.com", conn.api_token)
-                gl_project_id = (conn.config or {}).get("project_id")
-                if not gl_project_id:
-                    return {}
+        # Fall back to inline commit messages from trigger data
+        if not commit_data and data:
+            commit_msgs = data.get("commit_messages", [])
+            if commit_msgs:
+                commit_data = [{"message": m, "author": "team"} for m in commit_msgs]
 
-                commits = await gitlab.get_commits(gl_project_id, limit=20)
-                commit_data = [
-                    {"message": c.get("message", ""), "author": c.get("author_name", "")}
-                    for c in commits
-                ]
+        if not commit_data:
+            return {}
 
-                return await agent_ai_service.generate_release_notes(commit_data, [])
+        try:
+            return await agent_ai_service.generate_release_notes(commit_data, [])
         except Exception:
             logger.exception("Failed to generate release notes")
             return {}

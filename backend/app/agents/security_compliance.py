@@ -33,12 +33,26 @@ class SecurityComplianceAgent(BaseAgent):
 
         logger.info(f"Security scan for MR {mr_iid} in project {project_id}")
 
-        # Fetch diff from GitLab
+        # Fetch diff from GitLab (or use inline diff from trigger data)
         diff_content, file_paths = await self._get_diff(project_id, mr_iid, data)
 
         if not diff_content:
             logger.info("No diff content available, skipping scan")
             return
+
+        # Notify Slack that scan started
+        await self.publish(Event(
+            type=EventType.SLACK_NOTIFICATION,
+            data={
+                "message": (
+                    f"*Security Scan Started* :shield:\n"
+                    f"MR !{mr_iid or 'N/A'} — scanning {len(file_paths)} files"
+                ),
+            },
+            source_agent=self.name,
+            project_id=project_id,
+            correlation_id=event.correlation_id,
+        ))
 
         # Run AI security scan
         scan_result = await agent_ai_service.security_scan(diff_content, file_paths)
