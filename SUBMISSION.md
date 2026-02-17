@@ -13,7 +13,11 @@ Teams don't just manage work in ShipIt - the platform actively drives work forwa
 
 | Dashboard | Kanban Board | Agent Fleet |
 |-----------|-------------|-------------|
-| ![Dashboard](./demo_dashboard.png) | ![Board](./demo_shipit_platform.png) | ![Agents](./demo_agents.png) |
+| ![Dashboard](https://raw.githubusercontent.com/rogerkorantenng/shipit/main/demo_dashboard.png) | ![Board](https://raw.githubusercontent.com/rogerkorantenng/shipit/main/demo_shipit_platform.png) | ![Agents](https://raw.githubusercontent.com/rogerkorantenng/shipit/main/demo_agents.png) |
+
+| Mobile App Project | Data Pipeline Project |
+|-------------------|----------------------|
+| ![Mobile App](https://raw.githubusercontent.com/rogerkorantenng/shipit/main/demo_mobile_app_v2.png) | ![Data Pipeline](https://raw.githubusercontent.com/rogerkorantenng/shipit/main/demo_data_pipeline.png) |
 
 ## How We Use Gradient AI
 
