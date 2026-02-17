@@ -8,9 +8,38 @@ Built for the [DigitalOcean Gradient AI Hackathon](https://dorahacks.io/hackatho
 
 ---
 
+## Why Not Just Use Jira or Trello?
+
+Because they don't do anything. You do everything.
+
+Jira, Trello, Asana, Linear — they're all **digital filing cabinets**. You create a ticket. You move it across columns. You assign it. You write the PR description. You remember to run security checks. You chase reviewers. You write release notes. You deploy. You monitor. You report.
+
+**ShipIt does all of that for you.**
+
+| | Jira / Trello / Asana | ShipIt |
+|---|---|---|
+| **Task breakdown** | You manually create subtasks | AI decomposes tasks into subtasks with effort estimates in one click |
+| **Sprint planning** | You drag cards into a sprint and hope for the best | AI analyzes team capacity, assigns tasks to the right people, defers low-priority work, writes the sprint goal |
+| **Branch creation** | You switch to GitLab, create a branch, open an MR | Agent auto-creates branch, scaffolds boilerplate, opens MR, assigns reviewers |
+| **Security scanning** | You buy a separate tool (Snyk, SonarQube) | Agent scans every push with AI — SQL injection, XSS, secrets — blocks merges on critical vulns |
+| **Test suggestions** | You write tests from scratch | Agent reads the diff and generates unit tests, integration tests, and edge cases |
+| **Code review** | You ping people on Slack and wait | Agent assigns reviewers by expertise, tracks SLAs, sends reminders, auto-merges when approved |
+| **Deployment** | You run a pipeline and hope nothing breaks | Agent triggers CI/CD, monitors Datadog/Sentry post-deploy, auto-rolls back if errors spike |
+| **Release notes** | You write them by hand from memory | Agent generates them from commit history |
+| **Standup reports** | 15-minute meeting where nobody remembers what they did | One click — AI generates per-member reports from board activity |
+| **Priority management** | You guess | AI evaluates every task with reasoning — catches hidden blockers and misranked priorities |
+| **Analytics** | You export to a spreadsheet | AI generates real-time insights, detects bottlenecks, predicts sprint completion |
+| **Team wellbeing** | Not their problem | Pulse tracking with AI burnout detection and recommendations |
+| **Gamification** | Non-existent | XP, levels, 11 badges, streaks, team leaderboard |
+| **Tool integration** | 15 tabs open | Jira + GitLab + Figma + Slack + Datadog + Sentry in one event stream |
+
+**The fundamental difference:** Jira is a tool you work *in*. ShipIt is a platform that works *for* you. Your job is to write code and make decisions. Everything else — the scaffolding, the scanning, the reviewing, the deploying, the reporting — agents handle it.
+
+---
+
 ## What is ShipIt?
 
-ShipIt is more than a project board. It's an intelligent platform where AI agents actively drive your work forward — from the moment a Jira ticket lands to the second code ships to production.
+ShipIt is an intelligent platform where AI agents actively drive your work forward — from the moment a Jira ticket lands to the second code ships to production.
 
 You manage your tasks on a Kanban board. Behind the scenes, 9 specialized AI agents handle requirements analysis, branch creation, security scanning, test generation, code review, deployment, and analytics — all communicating through an async event bus and powered by **Gradient AI with Claude**.
 
